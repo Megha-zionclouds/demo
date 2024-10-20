@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CSV Question App</title>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600&family=Playfair+Display:wght@400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <h1>CSV Question App</h1>
+    
+    <!-- File Upload Form -->
+    <form id="upload-form" enctype="multipart/form-data">
+        <input type="file" name="file" id="file" required>
+        <button type="submit">Upload CSV</button>
+    </form>
+
+    <div id="upload-result"></div>
+
+    <hr>
+
+    <!-- Question Form -->
+    <form id="question-form" style="display:none;">
+        <label for="question">Ask a question about the CSV:</label><br>
+        <input type="text" id="question" name="question" required>
+        <button type="submit">Submit Question</button>
+    </form>
+
+    <div id="result"></div>
+    <div id="graph-container"></div>
+
+    <!-- JavaScript for handling form submission -->
+    <script>
+        document.getElementById('upload-form').addEventListener('submit', function(event) {
+            event.preventDefault();
+            const formData = new FormData(this);
+
+            fetch('/upload', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.blob_url) {
+                    document.getElementById('upload-result').innerHTML = 'File uploaded successfully!';
+                    document.getElementById('question-form').style.display = 'block';
+                    document.getElementById('question-form').dataset.blobUrl = data.blob_url;
+                } else {
+                    document.getElementById('upload-result').innerHTML = 'Error: ' + data.error;
+                }
+            })
+            .catch(error => console.error('Error:', error));
+        });
+
+        document.getElementById('question-form').addEventListener('submit', function(event) {
+            event.preventDefault();
+            const blobUrl = this.dataset.blobUrl;
+            const question = document.getElementById('question').value;
+
+            fetch('/ask', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    blob_url: blobUrl,
+                    question: question
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('result').innerHTML = data.answer;
+                if (data.graph_url) {
+                    document.getElementById('graph-container').innerHTML = `<img src="${data.graph_url}" alt="Generated Graph">`;
+                } else {
+                    document.getElementById('graph-container').innerHTML = '';
+                }
+            })
+            .catch(error => console.error('Error:', error));
+        });
+    </script>
+</body>
+</html>
